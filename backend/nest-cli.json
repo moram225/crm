@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json.schemastore.org/nest-cli",
+  "collection": "@nestjs/schematics",
+  "sourceRoot": "src",
+  "compilerOptions": {
+    "deleteOutDir": true,
+    "tsConfigPath": "tsconfig.build.json",
+    "assets": ["**/*.graphql", "**/*.prisma"],
+    "watchAssets": true,
+    "plugins": ["@nestjs/swagger"],
+    "webpack": true,
+    "typeCheck": true
+  },
+  "generateOptions": {
+    "spec": {
+      "service": false,
+      "controller": true
+    }
+  },
+  "projects": {
+    "backend": {
+      "type": "application",
+      "root": ".",
+      "entryFile": "main",
+      "sourceRoot": "src"
+    }
+  }
+}
