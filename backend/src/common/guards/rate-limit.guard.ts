@@ -1,6 +1,13 @@
-import { ThrottlerGuard, ThrottlerException } from '@nestjs/throttler';
 import { Injectable, ExecutionContext } from '@nestjs/common';
-import { Request, Response } from 'express';
+import { Request } from 'express';
+import { ThrottlerGuard, ThrottlerException, ThrottlerOptions } from '@nestjs/throttler';
+
+// Define a type for throttler configuration
+type ThrottlerConfig = {
+  ttl: number;
+  limit: number;
+  // Add other properties if necessary, e.g., name, blockDuration, etc.
+};
 
 @Injectable()
 export class RateLimitGuard extends ThrottlerGuard {
@@ -14,20 +21,38 @@ export class RateLimitGuard extends ThrottlerGuard {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const req = context.switchToHttp().getRequest<Request>();
-    const res = context.switchToHttp().getResponse<Response>();
-    const key = await this.getTracker(req);
+    const res = context.switchToHttp().getResponse();
 
-    // Access the first throttler configuration
-    const throttlerConfig = Array.isArray(this.options.throttlers) ? this.options.throttlers[0] : null;
+    // Access the first throttler configuration safely
+    const throttlerConfig: ThrottlerOptions | undefined = Array.isArray(this.options)
+      ? this.options[0]
+      : undefined;
 
     if (!throttlerConfig) {
       throw new Error('No throttler configuration found');
     }
 
-    const { ttl, limit } = throttlerConfig;
+    // Resolve ttl and limit to concrete numbers
+    const ttl = await (typeof throttlerConfig.ttl === 'function'
+      ? throttlerConfig.ttl(context)
+      : throttlerConfig.ttl);
+
+    const limit = await (typeof throttlerConfig.limit === 'function'
+      ? throttlerConfig.limit(context)
+      : throttlerConfig.limit);
+
+    if (typeof ttl !== 'number' || typeof limit !== 'number') {
+      throw new Error('Invalid throttler configuration: ttl and limit must be numbers');
+    }
 
     // Increment the hit count for the given key
-    const { totalHits } = await this.storageService.increment(key, ttl, limit, Date.now(), '0');
+    const { totalHits } = await this.storageService.increment(
+      await this.getTracker(req),
+      ttl,
+      limit,
+      Date.now(),
+      '0',
+    );
 
     // Set response headers
     res.setHeader(`${this.headerPrefix}-Limit`, limit);
