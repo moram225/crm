@@ -1,4 +1,5 @@
 // src/app.module.ts
+
 import { Module } from '@nestjs/common';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { AppController } from './app.controller';
@@ -10,12 +11,12 @@ import { TenantsModule } from './tenants/tenants.module';
   imports: [
     ThrottlerModule.forRoot({
       throttlers: [{
-        ttl: 60000,
-        limit: 100,
-      }]
+        ttl: 60, // Time-to-live in seconds
+        limit: 10, // Maximum number of requests allowed within the TTL
+      }],
     }),
     AuthModule,
-    TenantsModule
+    TenantsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
